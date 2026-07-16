@@ -1,0 +1,475 @@
+ <!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sMMA Arhīvs</title>
+<style>
+/* ===================== RESET & BASE ===================== */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#6B1A2A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;color:#F5D0D8;}
+
+/* ===================== LOBBY ===================== */
+#lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 16px;}
+.lobby-card{background:#4A1020;border:1px solid #8B2A3A;border-radius:12px;padding:44px 52px;max-width:440px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.lobby-logo{font-size:28px;font-weight:600;color:#F5D0D8;margin-bottom:6px;letter-spacing:0.03em;}
+.lobby-tagline{font-size:13px;color:#C08090;margin-bottom:32px;line-height:1.6;}
+.lobby-label{font-size:12px;color:#C08090;text-align:left;margin-bottom:6px;}
+.lobby-input{width:100%;background:#3A0818;border:1px solid #8B2A3A;color:#F5D0D8;padding:11px 14px;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s;}
+.lobby-input:focus{border-color:#C0392B;}
+.lobby-input::placeholder{color:#7A4050;}
+.char-hint{font-size:11px;color:#7A4050;text-align:right;margin-top:4px;margin-bottom:20px;}
+.lobby-err{font-size:12px;color:#E74C3C;min-height:18px;margin-bottom:10px;text-align:left;}
+.lobby-btn{width:100%;background:#C0392B;border:none;color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;letter-spacing:0.03em;transition:background .15s;}
+.lobby-btn:hover{background:#A93226;}
+.lobby-note{font-size:11px;color:#7A4050;margin-top:18px;line-height:1.7;}
+
+/* ===================== MAIN APP ===================== */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* NAV */
+.nav{display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:12px 20px;background:#4A1020;border-bottom:1px solid #8B2A3A;position:sticky;top:0;z-index:10;}
+.nav-btn{background:transparent;border:1px solid #8B2A3A;color:#C08090;padding:7px 15px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;transition:background .12s,color .12s;white-space:nowrap;}
+.nav-btn:hover{background:#5A1A2A;color:#F5D0D8;}
+.nav-btn.active{background:#C0392B;border-color:#C0392B;color:#fff;}
+.user-chip{margin-left:auto;background:#3A0818;border:1px solid #5A2A3A;border-radius:6px;padding:5px 12px;font-size:12px;color:#C08090;white-space:nowrap;}
+.user-chip strong{color:#F5D0D8;}
+
+/* CONTENT */
+.content{padding:20px 24px;flex:1;}
+
+/* TOP BAR */
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
+.course-select{background:#4A1020;border:1px solid #8B2A3A;color:#F5D0D8;padding:9px 14px;border-radius:8px;font-size:13px;min-width:240px;max-width:360px;cursor:pointer;outline:none;}
+.course-select:focus{border-color:#C0392B;}
+
+/* SORT BUTTONS */
+.filter-bar{display:none;align-items:center;gap:6px;flex-wrap:wrap;}
+.filter-bar.visible{display:flex;}
+.filter-label{font-size:11px;color:#C08090;}
+.filter-btn{background:transparent;border:1px solid #8B2A3A;color:#C08090;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:11px;transition:background .12s,color .12s;}
+.filter-btn:hover{background:#5A1A2A;color:#F5D0D8;}
+.filter-btn.active{background:#8B2A3A;border-color:#C0392B;color:#F5D0D8;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+thead tr{background:#4A1020;}
+th{padding:10px 10px;text-align:left;font-size:11px;font-weight:500;color:#C08090;border-bottom:1px solid #8B2A3A;white-space:nowrap;}
+th.c{text-align:center;}
+tbody tr{border-bottom:1px solid #521828;transition:background .1s;}
+tbody tr:hover{background:#521828;}
+td{padding:10px 10px;font-size:13px;color:#F5D0D8;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;}
+td.c{text-align:center;}
+
+/* FILE NAME + DATE cell */
+.fname{font-size:13px;color:#F5D0D8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.fdate{font-size:11px;color:#7A4050;margin-top:3px;}
+.badge-new{background:#C0392B;color:#fff;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
+
+/* RATING */
+.rating-val{font-size:14px;font-weight:600;color:#F5D0D8;}
+.rating-na{font-size:13px;color:#7A4050;}
+
+/* VOTE INPUT */
+.vote-wrap{display:flex;align-items:center;justify-content:center;gap:5px;}
+.vote-inp{width:60px;background:#4A1020;border:1px solid #8B2A3A;color:#F5D0D8;padding:5px 6px;border-radius:6px;font-size:12px;text-align:center;outline:none;transition:border-color .12s;}
+.vote-inp:focus{border-color:#C0392B;}
+.vote-inp.err{border-color:#E74C3C;}
+.vote-ok{background:#C0392B;border:none;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:background .12s;}
+.vote-ok:hover{background:#A93226;}
+.voted-txt{font-size:11px;color:#1AACB0;}
+.no-user-txt{font-size:11px;color:#7A4050;font-style:italic;}
+
+/* RANK */
+.rank-wrap{line-height:1.4;}
+.rank-num{font-size:14px;font-weight:600;}
+.r1{color:#F5C842;}
+.r2{color:#C0C0C0;}
+.r3{color:#CD7F32;}
+.r4{color:#1AACB0;}
+.rn{color:#5A3040;}
+.votes-txt{font-size:11px;color:#7A4050;}
+
+/* STATES */
+.empty-state{text-align:center;padding:56px 0;color:#C08090;font-size:14px;}
+.loading{text-align:center;padding:48px 0;color:#C08090;font-size:13px;}
+.error-state{text-align:center;padding:40px;color:#E74C3C;font-size:13px;line-height:1.7;}
+
+/* ABOUT */
+.about-box{max-width:560px;margin:48px auto;text-align:center;}
+.about-box h3{font-size:20px;font-weight:500;color:#F5D0D8;margin-bottom:12px;}
+.about-box p{color:#C08090;font-size:13px;line-height:1.8;}
+.about-box a{color:#1AACB0;text-decoration:none;}
+.about-box a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOBBY ===================== -->
+<div id="lobby">
+  <div class="lobby-card">
+    <div class="lobby-logo">sMMA Arhīvs</div>
+    <div class="lobby-tagline">RSU studiju materiālu vērtēšanas platforma.<br>Ievadi lietotājvārdu, lai turpinātu.</div>
+
+    <div class="lobby-label">Lietotājvārds</div>
+    <input class="lobby-input" id="uname" type="text" maxlength="20"
+      placeholder="Izvēlies lietotājvārdu…"
+      autocomplete="off" spellcheck="false"
+      oninput="onUnameInput()" onkeydown="if(event.key==='Enter')enterApp()">
+    <div class="char-hint" id="char-hint">0 / 20</div>
+
+    <div class="lobby-err" id="lobby-err"></div>
+
+    <button class="lobby-btn" onclick="enterApp()">Ienākt arhīvā →</button>
+
+    <div class="lobby-note">
+      Tavs lietotājvārds tiks saglabāts šajā ierīcē.<br>
+      Pēc ienākšanas to nevarēs mainīt.<br>
+      Katrs lietotājs var balsot par katru materiālu <strong>vienu reizi</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app">
+  <nav class="nav" id="nav">
+    <button class="nav-btn active" onclick="selectYear(this,'I.gads')">I. gads</button>
+    <button class="nav-btn" onclick="selectYear(this,'II.gads')">II. gads</button>
+    <button class="nav-btn" onclick="selectYear(this,'III.gads')">III. gads</button>
+    <button class="nav-btn" onclick="selectYear(this,'IV.gads')">IV. gads</button>
+    <button class="nav-btn" onclick="selectYear(this,'V.gads')">V. gads</button>
+    <button class="nav-btn" onclick="selectYear(this,'par')">Par sMMA</button>
+    <div class="user-chip" id="user-chip"></div>
+  </nav>
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+// =====================================================
+// KONFIGURĀCIJA — aizstājiet ar savu Web App URL
+// =====================================================
+const WEBAPP_URL = 'YOUR_WEBAPP_URL_HERE';
+
+// =====================================================
+// KURSI PA GADIEM
+// =====================================================
+const COURSES = {
+  'I.gads':   ['Cilvēka Anatomija I.sem.','Histoloģija I.sem.','Medicīniskā Bioķīmija I.sem.','Molekulārā un šūnu bioloģija','Bioētika un medicīnas socioloģija'],
+  'II.gads':  ['Cilvēka Anatomija II.sem.','Histoloģija II.sem.','Medicīniskā Bioķīmija II.sem.','Fizioloģija','Embrioloģija','Medicīniskā Ģenētika'],
+  'III.gads': ['Farmakoloģija','Patoloģija','Kardioloģija','Klīniskā Mikrobioloģija','Ķirurģijas pamati','Biostatistika'],
+  'IV.gads':  ['Ginekoloģija','Gastroenteroloģija','Endokrinoloģija','Nefroloģija','Infektoloģija','Ķirurģiskās slimības I','Psihiatrija','Dermatoloģija','Ortopēdija','Otorinolaringoloģija'],
+  'V.gads':   ['Hematoloģija','Onkoloģija','Pneimoloģija','Ķirurģiskās slimības','Klīniskā medicīna','Neiroloģija un Neiroķirurģija','Ģimenes medicīnas pamati','Pediatrija']
+};
+
+// =====================================================
+// STĀVOKLIS
+// =====================================================
+let currentUser = null;
+let currentYear = 'I.gads';
+let currentCourse = '';
+let currentSort = 'rating';
+let localVotes = {};   // { fileId: ratingString }
+
+// =====================================================
+// LOBBY LOĢIKA
+// =====================================================
+function onUnameInput() {
+  const v = document.getElementById('uname').value;
+  document.getElementById('char-hint').textContent = v.length + ' / 20';
+  document.getElementById('lobby-err').textContent = '';
+}
+
+function enterApp() {
+  const inp = document.getElementById('uname');
+  const err = document.getElementById('lobby-err');
+  const val = inp.value.trim();
+
+  if (!val)        { err.textContent = 'Lūdzu ievadi lietotājvārdu.'; inp.focus(); return; }
+  if (val.length < 2) { err.textContent = 'Vismaz 2 rakstzīmes.'; inp.focus(); return; }
+
+  currentUser = val;
+  try {
+    // Saglabāt lietotājvārdu un laiku (ja jauns)
+    localStorage.setItem('smma_user', val);
+    if (!localStorage.getItem('smma_since_' + val))
+      localStorage.setItem('smma_since_' + val, new Date().toISOString());
+    // Ielādēt lokālos balsojumus
+    const saved = localStorage.getItem('smma_votes_' + val);
+    localVotes = saved ? JSON.parse(saved) : {};
+  } catch(e) { localVotes = {}; }
+
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('app').style.display   = 'flex';
+  document.getElementById('user-chip').innerHTML = 'Lietotājs: <strong>' + escHtml(val) + '</strong>';
+
+  selectYear(document.querySelector('.nav-btn.active'), 'I.gads');
+}
+
+// =====================================================
+// NAVIGĀCIJA — gads
+// =====================================================
+function selectYear(btn, year) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentYear   = year;
+  currentCourse = '';
+  currentSort   = 'rating';
+
+  if (year === 'par') {
+    renderAbout();
+    return;
+  }
+  renderYearView();
+}
+
+// =====================================================
+// GADA SKATS — kursu izvēle + tabula
+// =====================================================
+function renderYearView() {
+  const courses = COURSES[currentYear] || [];
+  document.getElementById('content').innerHTML = `
+    <div class="top-bar">
+      <select class="course-select" id="csel" onchange="selectCourse(this.value)">
+        <option value="">— Izvēlies kursu —</option>
+        ${courses.map(c => `<option value="${escAttr(c)}">${escHtml(c)}</option>`).join('')}
+      </select>
+      <div class="filter-bar" id="fbar">
+        <span class="filter-label">Kārtot:</span>
+        <button class="filter-btn active" onclick="setSort('rating',this)">Pēc vērtējuma</button>
+        <button class="filter-btn" onclick="setSort('date',this)">Pēc datuma</button>
+        <button class="filter-btn" onclick="setSort('votes',this)">Pēc balsīm</button>
+      </div>
+    </div>
+    <div id="tarea"><div class="empty-state">Izvēlies kursu, lai redzētu materiālus.</div></div>`;
+}
+
+function selectCourse(course) {
+  currentCourse = course;
+  const fbar = document.getElementById('fbar');
+  if (!course) {
+    if (fbar) fbar.classList.remove('visible');
+    document.getElementById('tarea').innerHTML = '<div class="empty-state">Izvēlies kursu, lai redzētu materiālus.</div>';
+    return;
+  }
+  if (fbar) fbar.classList.add('visible');
+  loadAndRender();
+}
+
+function setSort(s, btn) {
+  currentSort = s;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadAndRender();
+}
+
+// =====================================================
+// IELĀDĒT FAILUS NO SHEETS UN RENDERĒT
+// =====================================================
+async function loadAndRender() {
+  const area = document.getElementById('tarea');
+  if (!area) return;
+  area.innerHTML = '<div class="loading">Ielādē materiālus…</div>';
+
+  try {
+    const url = WEBAPP_URL
+      + '?action=getFiles'
+      + '&year='   + encodeURIComponent(currentYear)
+      + '&course=' + encodeURIComponent(currentCourse);
+
+    const resp = await fetch(url, { redirect: 'follow' });
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+    renderTable(data.files || []);
+
+  } catch (err) {
+    area.innerHTML = `<div class="error-state">
+      Neizdevās ielādēt materiālus.<br>
+      <small>${escHtml(err.message)}</small><br><br>
+      <small>Pārliecinies, ka WEBAPP_URL ir pareizi iestatīts.</small>
+    </div>`;
+  }
+}
+
+function renderTable(files) {
+  const area = document.getElementById('tarea');
+  if (!area) return;
+  if (!files.length) { area.innerHTML = '<div class="empty-state">Šajā kursā vēl nav materiālu.</div>'; return; }
+
+  // Kārtošana
+  let sorted = [...files];
+  if (currentSort === 'rating') sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  else if (currentSort === 'date') sorted.sort((a, b) => b.date.localeCompare(a.date));
+  else sorted.sort((a, b) => b.votes - a.votes);
+
+  // Rangs pēc reitinga
+  const byRating = [...files].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  const rankMap  = {};
+  byRating.forEach((f, i) => rankMap[f.id] = i + 1);
+
+  const rows = sorted.map(f => {
+    const rank   = rankMap[f.id];
+    const rDisp  = f.rating !== null
+      ? `<span class="rating-val">${Number(f.rating).toFixed(2)}</span>`
+      : `<span class="rating-na">—</span>`;
+    const newBdg = f.isNew ? `<span class="badge-new">JAUNS</span>` : '';
+    const voted  = localVotes[f.id];
+    const vCell  = voted
+      ? `<span class="voted-txt">✓ ${voted}</span>`
+      : `<div class="vote-wrap">
+           <input class="vote-inp" id="vi-${f.id}" type="number" min="0" max="10" step="0.01" placeholder="0–10">
+           <button class="vote-ok" onclick="castVote('${escAttr(f.id)}','${escAttr(currentYear)}')">OK</button>
+         </div>`;
+
+    return `<tr>
+      <td style="width:14%">${escHtml(f.pub)}</td>
+      <td style="width:36%">
+        <div class="fname">${escHtml(f.name || f.id)}${newBdg}</div>
+        <div class="fdate">${escHtml(f.date)}</div>
+      </td>
+      <td class="c" style="width:11%">${rDisp}</td>
+      <td class="c" style="width:23%">${vCell}</td>
+      <td class="c" style="width:16%">
+        <div class="rank-wrap">
+          <span class="rank-num ${rankClass(rank)}">${rankLabel(rank)}</span><br>
+          <span class="votes-txt">${f.votes} balsis</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:14%">Publicētājs</th>
+          <th style="width:36%">Faila nosaukums</th>
+          <th class="c" style="width:11%">Reitings</th>
+          <th class="c" style="width:23%">Tavs vērtējums</th>
+          <th class="c" style="width:16%">Vieta / Balsis</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// =====================================================
+// BALSOŠANA
+// =====================================================
+async function castVote(fileId, year) {
+  const inp = document.getElementById('vi-' + fileId);
+  if (!inp) return;
+
+  const val = parseFloat(inp.value);
+  if (isNaN(val) || val < 0 || val > 10) {
+    inp.classList.add('err');
+    setTimeout(() => inp.classList.remove('err'), 1200);
+    return;
+  }
+
+  // Optimistisks UI — parādīt uzreiz
+  localVotes[fileId] = val.toFixed(2);
+  saveLocalVotes();
+  renderTableFromCache();
+
+  // Nosūtīt uz serveri
+  try {
+    const url = WEBAPP_URL
+      + '?action=vote'
+      + '&fileId='   + encodeURIComponent(fileId)
+      + '&username=' + encodeURIComponent(currentUser)
+      + '&rating='   + val
+      + '&year='     + encodeURIComponent(year);
+
+    const resp = await fetch(url, { redirect: 'follow' });
+    const data = await resp.json();
+
+    if (data.success) {
+      // Atjaunināt lokālo kopiju ar servera jaunajiem datiem
+      loadAndRender();
+    } else if (data.reason === 'already_voted') {
+      // Serveris apstiprina — balsojums jau reģistrēts
+      loadAndRender();
+    } else {
+      console.warn('Vote response:', data);
+    }
+  } catch (err) {
+    console.error('Vote submit error:', err);
+  }
+}
+
+// Renderē tabulu no kešatmiņas (bez jauna tīkla pieprasījuma)
+// Tiek izsaukts uzreiz pēc lokālā stāvokļa atjaunināšanas
+function renderTableFromCache() {
+  // Vienkārši atkārtoti ielādē — pietiekami ātri priekš UX
+  loadAndRender();
+}
+
+function saveLocalVotes() {
+  try {
+    localStorage.setItem('smma_votes_' + currentUser, JSON.stringify(localVotes));
+  } catch(e) {}
+}
+
+// =====================================================
+// PAR sMMA SKATS
+// =====================================================
+function renderAbout() {
+  document.getElementById('content').innerHTML = `
+    <div class="about-box">
+      <h3>Par sMMA Arhīvu</h3>
+      <p>
+        <strong>sMMA</strong> ir RSU medicīnas studentu studiju materiālu arhīvs.<br><br>
+        Platformā studenti var iesniegt un vērtēt lekciju konspektus,
+        praktisko darbu materiālus un citus mācību resursus.<br><br>
+        Katrs reģistrēts lietotājs var novērtēt katru materiālu ar
+        vērtējumu no <strong>0.00 līdz 10.00</strong> vienu reizi.<br><br>
+        Materiāli ar <span class="badge-new">JAUNS</span> atzīmi ir pievienoti
+        pēdējo 7 dienu laikā.<br><br>
+        Jautājumi un ierosinājumi: <a href="mailto:stumamaar@gmail.com">stumamaar@gmail.com</a>
+      </p>
+    </div>`;
+}
+
+// =====================================================
+// PALĪGFUNKCIJAS
+// =====================================================
+function rankClass(r) {
+  if (r === 1) return 'r1';
+  if (r === 2) return 'r2';
+  if (r === 3) return 'r3';
+  if (r <= 7)  return 'r4';
+  return 'rn';
+}
+
+function rankLabel(r) {
+  const medals = {1:'①',2:'②',3:'③',4:'④',5:'⑤',6:'⑥',7:'⑦'};
+  return (medals[r] || r) + ' ' + r + '.';
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(s) {
+  return encodeURIComponent(String(s || ''));
+}
+
+// =====================================================
+// INICIALIZĀCIJA — pārbaudīt saglabāto lietotāju
+// =====================================================
+(function init() {
+  try {
+    const saved = localStorage.getItem('smma_user');
+    if (saved) document.getElementById('uname').value = saved;
+    const hint = document.getElementById('char-hint');
+    if (hint && saved) hint.textContent = saved.length + ' / 20';
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
