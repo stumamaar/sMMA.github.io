@@ -338,7 +338,7 @@ function renderTable(files) {
       ? `<span class="voted-txt">✓ ${voted}</span>`
       : `<div class="vote-wrap">
            <input class="vote-inp" id="vi-${f.id}" type="number" min="0" max="10" step="0.01" placeholder="0–10">
-           <button class="vote-ok" onclick="castVote('${escAttr(f.id)}','${escAttr(currentYear)}')">OK</button>
+           <button class="vote-ok" onclick="castVote('${escJsAttr(f.id)}','${escJsAttr(currentYear)}')">OK</button>
          </div>`;
 
     return `<tr>
@@ -475,7 +475,24 @@ function escHtml(s) {
 }
 
 function escAttr(s) {
-  return encodeURIComponent(String(s || ''));
+  // Droši ievieto vērtību HTML atribūtā (piem. <option value="...">).
+  // SVARĪGI: šī NEDRĪKST darīt URL-kodēšanu (encodeURIComponent) — tā ir
+  // atsevišķu funkciju (loadAndRender, castVote) uzdevums, kad tās pašas
+  // veido pieprasījuma URL. Ja abas kodē, vērtība tiek kodēta divreiz un
+  // serveris to vairs neatpazīst (tieši tas, kas izraisīja "no files").
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escJsAttr(s) {
+  // Droši ievieto vērtību iekš onclick="fn('...')" — proti, JS virknes
+  // literālī, kas savukārt iegults dubultpēdiņu HTML atribūtā. Nekādas
+  // URL-kodēšanas arī šeit — tikai JS un HTML sintakses aizsardzība.
+  return String(s || '')
+    .replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // =====================================================
