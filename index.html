@@ -149,18 +149,13 @@ td.c{text-align:center;}
 // =====================================================
 // KONFIGURĀCIJA — aizstājiet ar savu Web App URL
 // =====================================================
-const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyGfQpV-eZLPB74fUrid547Xd3xOhcHaTFby73Vra6w0v6I5AwjpgrAuLuiGkkMa_sR/exec';
+const WEBAPP_URL = 'YOUR_WEBAPP_URL_HERE';
 
 // =====================================================
-// KURSI PA GADIEM
+// KURSI PA GADIEM — vairs netiek glabāti šeit statiski. Kursu saraksts
+// tagad tiek ielādēts TIEŠI no gada lapas (skat. renderYearView), lai
+// tas nekad nevarētu izklīst no tā, kas patiešām ir Google Veidlapā.
 // =====================================================
-const COURSES = {
-  'I.gads':   ['Cilvēka Anatomija I.sem.','Histoloģija I.sem.','Medicīniskā Bioķīmija I.sem.','Molekulārā un šūnu bioloģija','Bioētika un medicīnas socioloģija'],
-  'II.gads':  ['Cilvēka Anatomija II.sem.','Histoloģija II.sem.','Medicīniskā Bioķīmija II.sem.','Fizioloģija','Embrioloģija','Medicīniskā Ģenētika'],
-  'III.gads': ['Farmakoloģija','Patoloģija','Kardioloģija','Klīniskā Mikrobioloģija','Ķirurģijas pamati','Biostatistika'],
-  'IV.gads':  ['Ginekoloģija','Gastroenteroloģija','Endokrinoloģija','Nefroloģija','Infektoloģija','Ķirurģiskās slimības I','Psihiatrija','Dermatoloģija','Ortopēdija','Otorinolaringoloģija'],
-  'V.gads':   ['Hematoloģija','Onkoloģija','Pneimoloģija','Ķirurģiskās slimības','Klīniskā medicīna','Neiroloģija un Neiroķirurģija','Ģimenes medicīnas pamati','Pediatrija']
-};
 
 // =====================================================
 // STĀVOKLIS
@@ -226,13 +221,11 @@ function selectYear(btn, year) {
 // =====================================================
 // GADA SKATS — kursu izvēle + tabula
 // =====================================================
-function renderYearView() {
-  const courses = COURSES[currentYear] || [];
+async function renderYearView() {
   document.getElementById('content').innerHTML = `
     <div class="top-bar">
-      <select class="course-select" id="csel" onchange="selectCourse(this.value)">
-        <option value="">— Izvēlies kursu —</option>
-        ${courses.map(c => `<option value="${escAttr(c)}">${escHtml(c)}</option>`).join('')}
+      <select class="course-select" id="csel" onchange="selectCourse(this.value)" disabled>
+        <option value="">Ielādē kursus…</option>
       </select>
       <div class="filter-bar" id="fbar">
         <span class="filter-label">Kārtot:</span>
@@ -242,6 +235,32 @@ function renderYearView() {
       </div>
     </div>
     <div id="tarea"><div class="empty-state">Izvēlies kursu, lai redzētu materiālus.</div></div>`;
+
+  const sel = document.getElementById('csel');
+  const yearAtRequest = currentYear; // ja lietotājs paspēj nomainīt gadu pirms atbildes pienākšanas
+
+  try {
+    const url = WEBAPP_URL + '?action=getCourses&year=' + encodeURIComponent(currentYear);
+    const resp = await fetch(url, { redirect: 'follow' });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    if (yearAtRequest !== currentYear) return; // novecojusi atbilde — ignorēt
+
+    const courses = data.courses || [];
+    sel.innerHTML = '<option value="">— Izvēlies kursu —</option>'
+      + courses.map(c => `<option value="${escAttr(c)}">${escHtml(c)}</option>`).join('');
+    sel.disabled = false;
+
+    if (!courses.length) {
+      document.getElementById('tarea').innerHTML = '<div class="empty-state">Šim gadam vēl nav apstiprinātu materiālu.</div>';
+    }
+  } catch (err) {
+    if (yearAtRequest !== currentYear) return;
+    sel.innerHTML = '<option value="">Neizdevās ielādēt kursus</option>';
+    document.getElementById('tarea').innerHTML = `<div class="error-state">
+      Neizdevās ielādēt kursu sarakstu.<br><small>${escHtml(err.message)}</small>
+    </div>`;
+  }
 }
 
 function selectCourse(course) {
