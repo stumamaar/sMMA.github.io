@@ -337,7 +337,7 @@ function renderTable(files) {
     const vCell  = voted
       ? `<span class="voted-txt">✓ ${voted}</span>`
       : `<div class="vote-wrap">
-           <input class="vote-inp" id="vi-${escAttr(f.id)}" type="number" min="0" max="10" step="0.01" placeholder="0–10">
+              <input class="vote-inp" id="vi-${escAttr(f.id)}" type="number" min="0" max="10" step="0.01" placeholder="0–10">
            <button class="vote-ok" onclick="castVote('${escJsAttr(f.id)}','${escJsAttr(currentYear)}')">OK</button>
          </div>`;
 
